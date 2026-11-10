@@ -88,6 +88,13 @@ tools/docs/documentation-file-ref-check
 make SPHINXDIRS="<book>" htmldocs 2>&1 | grep -E 'WARNING|ERROR'
 ```
 
+Sphinx setup: a venv from `Documentation/sphinx/requirements.txt` on
+`PATH`, and `make O=<scratch dir> htmldocs SPHINXOPTS=-j4` so output stays
+out of the tree. The kernel wrapper runs Sphinx quietly; a finished build has
+`Documentation/output/index.html` under the `O=` dir and no "build
+succeeded" line. The baseline full build had 69 unique warnings (see
+`reports/`), so a new warning stands out.
+
 Signals from `rst_review.py` (report-only, stdlib Python, ~10 s for the tree):
 
 | Signal               | Kernel default decision                                                                                               |
@@ -100,6 +107,31 @@ Signals from `rst_review.py` (report-only, stdlib Python, ~10 s for the tree):
 | `undefined-ref`      | **Fix** (rare: Sphinx already warns)                                                                                   |
 | `legacy-unrendered`  | **Leave** unless the owner wants conversion; flag only a `.txt` that has an `.rst` sibling on the same topic          |
 | `glossary-candidate` | See the glossary bar below; generic industry acronyms are **out**                                                      |
+
+### Check for prior work before proposing anything
+
+A finding is not a patch candidate until all of these are checked, and the
+report records which ones were reachable:
+
+1. **linux-next** (merges `docs-next` and the subsystem trees):
+   `git fetch --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git master:refs/remotes/next/master`,
+   then `git grep` the offending text in `next/master`. Do **not** run the
+   linux-next build here (it executes fetched Sphinx extensions); compare
+   sources statically, and leave a linux-next docs build to the human.
+2. **lore** (`https://lore.kernel.org/all/?q=<file or phrase>`): the only
+   place docs-only patches to linux-doc are visible.
+3. **Patchwork** (`https://patchwork.kernel.org/api/patches/?q=<subject words>`):
+   subject search across subsystem lists. linux-doc is **not** a project
+   there.
+4. **Bugzilla** (`https://bugzilla.kernel.org/rest/bug?product=Documentation&resolution=---`):
+   mostly man-pages; scan for `Documentation/` paths. Reader reports there
+   are good evidence of reader harm (value bar item 1).
+
+If a patch already exists, do not write another: review it, or ask its
+maintainer what it needs. If an active series touches the same file, raise
+the finding in review of that series instead of sending a conflicting
+patch. A source you could not reach makes the finding **unchecked**, not
+**clear**.
 
 Then read with the four Merlon lenses, but weight them for this tree:
 **staff engineer first** (is it true of the code today?), then technical
